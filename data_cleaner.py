@@ -16,7 +16,8 @@ raw_vibration_buffer = []
 last_valid_vibration = 0.0
 
 def apply_lowpass_filter(data_window):
-    if len(data_window) < 8:
+    """Butterworth filter to smooth high-frequency noise."""
+    if len(data_window) < 12:  # Increased minimum length to prevent SciPy padlen error
         return data_window[-1]
     b, a = butter(N=2, Wn=0.3, btype='low')
     filtered_signal = filtfilt(b, a, data_window)
