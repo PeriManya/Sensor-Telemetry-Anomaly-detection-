@@ -1,33 +1,35 @@
-# producer.py - Task 1: Streaming Ingestion Layer
-import time
+import csv
 import json
-import random
-from confluent_kafka import Producer
+import time
+from kafka import KafkaProducer
 
-conf = {'bootstrap.servers': 'localhost:9092'}
-producer = Producer(conf)
+producer = KafkaProducer(
+    bootstrap_servers=['localhost:9092'],
+    value_serializer=lambda x: json.dumps(x).encode('utf-8')
+)
 
-print("Task 1 Active: Streaming live sensor telemetry to Kafka...")
+csv_file_path = 'dataset.csv'
 
-try:
-    while True:
-        has_dropout = random.random() < 0.05
-        
-        payload = {
-            "timestamp": int(time.time() * 1000),
-            "device_id": "motor_01",
-            "vibration_x": None if has_dropout else round(random.uniform(-1.5, 1.5), 4),
-            "acoustic_frequency": round(random.uniform(800, 3200), 2)
-        }
-        
-        producer.produce(
-            topic='sensor-telemetry-v1',
-            key=payload["device_id"],
-            value=json.dumps(payload)
-        )
-        producer.poll(0)
-        time.sleep(0.1)
-except KeyboardInterrupt:
-    print("\nProducer stopped.")
-finally:
-    producer.flush() 
+print("Starting sensor stream from NASA Bearing dataset...")
+
+while True:
+    with open(csv_file_path, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            # Package multi-channel telemetry payload
+            payload = {
+                "timestamp": int(time.time() * 1000),
+                "device_id": "nasa_bearing_01",
+                "vibration_1": float(row['vibration_1']),
+                "vibration_2": float(row['vibration_2']),
+                "vibration_3": float(row['vibration_3']),
+                "vibration_4": float(row['vibration_4']),
+                "vibration_5": float(row['vibration_5']),
+                "vibration_6": float(row['vibration_6']),
+                "vibration_7": float(row['vibration_7']),
+                "vibration_8": float(row['vibration_8'])
+            }
+            
+            producer.send('sensor-topic', value=payload)
+            print(f"Sent payload: {payload}")
+            time.sleep(1) # Stream interval
