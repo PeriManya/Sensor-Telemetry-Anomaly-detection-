@@ -52,13 +52,16 @@ def read_sensor_file(file_path: Path) -> pd.DataFrame:
 
     return data.reset_index(drop=True)
 
-
 def calculate_volatility(data: pd.DataFrame) -> pd.DataFrame:
     """Calculate rolling standard deviation for each sensor column."""
     result = data.copy()
 
+    # Use string column names so feature names are consistent.
+    result.columns = [str(column) for column in result.columns]
+
     for column in data.columns:
-        result[f"{column}_rolling_volatility"] = (
+        column_name = str(column)
+        result[f"{column_name}_rolling_volatility"] = (
             data[column]
             .rolling(window=VOLATILITY_WINDOW, min_periods=2)
             .std()
@@ -67,14 +70,16 @@ def calculate_volatility(data: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+
+
 def normalize_volatility(data: pd.DataFrame) -> pd.DataFrame:
     """Scale each rolling-volatility feature between 0 and 1."""
     result = data.copy()
 
     volatility_columns = [
-        column
+        str(column)
         for column in result.columns
-        if column.endswith("_rolling_volatility")
+        if str(column).endswith("_rolling_volatility")
     ]
 
     for column in volatility_columns:
@@ -89,9 +94,7 @@ def normalize_volatility(data: pd.DataFrame) -> pd.DataFrame:
             result[column] = (values - minimum) / (maximum - minimum)
         else:
             result[column] = 0.0
-
     return result
-
 
 def safe_filename(name: str) -> str:
     """Make a filename safe for saving on common operating systems."""
