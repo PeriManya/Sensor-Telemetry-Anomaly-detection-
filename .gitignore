@@ -1,0 +1,10 @@
+
+# Raw NASA bearing dataset
+data/raw/
+
+# Generated cleaned data
+data/cleaned/
+
+# Python cache
+__pycache__/
+*.pyc
