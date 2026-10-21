@@ -11,3 +11,6 @@ __pycache__/
 
 # Teammate dataset - keep out of GitHub
 /dataset.csv
+
+# Generated statistical analysis results
+/statistical_baseline_results.csv
