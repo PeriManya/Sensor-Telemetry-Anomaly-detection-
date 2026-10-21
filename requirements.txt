@@ -7,3 +7,4 @@ scikit-learn
 stumpy
 kafka-python
 confluent-kafka
+PyWavelets
