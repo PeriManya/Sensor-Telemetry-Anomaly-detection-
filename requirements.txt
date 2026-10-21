@@ -1,0 +1,6 @@
+pandas
+numpy
+matplotlib
+stumpy
+PyWavelets
+kafka-python
