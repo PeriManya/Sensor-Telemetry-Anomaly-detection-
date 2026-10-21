@@ -1,24 +1,56 @@
+import numpy as np
 import pandas as pd
-import pywt
 import matplotlib.pyplot as plt
+import pywt
 
-print("Loading dataset for Wavelet Transform analysis...")
-df = pd.read_csv('dataset.csv')
+print("Loading dataset for wavelet analysis...")
+df = pd.read_csv("dataset.csv")
 
-# Extract a slice of the vibration signal for clear time-frequency visualization
-signal = df['vibration_1'].values[:1000]
+signal = pd.to_numeric(
+    df["vibration_1"], errors="coerce"
+).dropna().to_numpy(dtype=float)
 
-# Perform Continuous Wavelet Transform (CWT) using 'morl' (Morlet wavelet)
-scales = range(1, 64)
-coefficients, frequencies = pywt.cwt(signal, scales, 'morl')
+if len(signal) < 16:
+    raise ValueError("Not enough valid readings for wavelet analysis.")
 
-print("Wavelet Transform computed successfully!")
+# Remove the mean before decomposition
+signal = signal - np.mean(signal)
 
-# Plot the CWT results
-plt.figure(figsize=(10, 5))
-plt.imshow(abs(coefficients), extent=[0, len(signal), 1, 63], cmap='PRGn', aspect='auto')
-plt.title('Wavelet Transform (CWT) Time-Frequency Spectrum')
-plt.xlabel('Sample Index')
-plt.ylabel('Scale')
-plt.colorbar(label='Amplitude Magnitude')
+# Discrete Wavelet Transform
+wavelet = "db4"
+max_level = pywt.dwt_max_level(len(signal), pywt.Wavelet(wavelet).dec_len)
+level = min(5, max_level)
+
+if level < 1:
+    raise ValueError("Signal is too short for wavelet decomposition.")
+
+coefficients = pywt.wavedec(signal, wavelet, level=level)
+
+print("Wavelet analysis completed successfully!")
+print(f"Samples processed: {len(signal)}")
+print(f"Wavelet: {wavelet}")
+print(f"Decomposition level: {level}")
+
+for i, coeff in enumerate(coefficients):
+    label = "Approximation" if i == 0 else f"Detail D{level - i + 1}"
+    energy = np.sum(coeff ** 2)
+    print(f"{label} coefficient count: {len(coeff)}, energy: {energy:.4f}")
+
+# Plot the original signal and wavelet coefficients
+fig, axes = plt.subplots(
+    len(coefficients) + 1, 1, figsize=(12, 10)
+)
+
+axes[0].plot(signal, linewidth=0.6)
+axes[0].set_title("Mean-Centered Vibration Signal")
+axes[0].set_ylabel("Amplitude")
+
+for i, coeff in enumerate(coefficients):
+    label = "Approximation" if i == 0 else f"Detail D{level - i + 1}"
+    axes[i + 1].plot(coeff, linewidth=0.7)
+    axes[i + 1].set_title(f"{label} Wavelet Coefficients")
+    axes[i + 1].set_ylabel("Coefficient")
+
+axes[-1].set_xlabel("Coefficient Index")
+plt.tight_layout()
 plt.show()
