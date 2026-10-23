@@ -37,6 +37,7 @@ An end-to-end industrial IoT telemetry pipeline designed to process real-time vi
 ```bash
 git clone [https://github.com/PeriManya/Sensor-Telemetry-Anomaly-detection.git](https://github.com/PeriManya/Sensor-Telemetry-Anomaly-detection.git)
 cd Sensor-Telemetry-Anomaly-detection
+```
 
 ### 2. Set Up Virtual Environment & Dependencies
 ```bash
@@ -47,10 +48,12 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
+```
 
 ### 3. Spin Up Streaming Infrastructure
 ```bash
 docker-compose up -d
+```
 
 ### 4. Run the Pipeline
 ```bash
