@@ -27,6 +27,7 @@ An end-to-end industrial IoT telemetry pipeline designed to process real-time vi
 ├── statistical_baseline_results.csv # Baseline statistical output metrics
 ├── requirements.txt                 # Project dependencies
 └── README.md                        # Documentation
+```
 
 ---
 
@@ -58,6 +59,7 @@ python sensor_streamer.py
 
 # Run baseline analysis
 python statistical_baseline.py
+```
 
 ## 📈 Key Features Implemented
 - **Ingestion & Preprocessing:** Low-latency streaming setup via Kafka with automated noise filtration.
