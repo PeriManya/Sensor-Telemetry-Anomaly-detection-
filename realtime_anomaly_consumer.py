@@ -49,9 +49,12 @@ def run_consumer():
 
             # Calculate a basic Remaining Useful Life (RUL) estimation proxy
             health_score = float(np.sum(predictions == 1) / len(predictions)) * 100
-            
+
+            # Estimate RUL based on health score trajectory
+            estimated_rul_hours = max(0, round((health_score - 50) * 2.5, 1))
+
             print(f"\n--- Processing Window of {window_size} Records ---")
-            print(f"Health Score: {health_score:.2f}% | Anomalies Detected: {anomaly_count}")
+            print(f"Health Score: {health_score:.2f}% | Anomalies Detected: {anomaly_count} | Estimated RUL: {estimated_rul_hours} hrs")
 
             # Automated Alerting Logic for critical threshold breaches[span_5](start_span)[span_5](end_span)
             if health_score < 80.0 or anomaly_count > 5:
