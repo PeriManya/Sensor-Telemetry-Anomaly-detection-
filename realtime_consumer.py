@@ -1,7 +1,6 @@
 
 import json
 import os
-import time
 from collections import deque
 
 import joblib
@@ -11,6 +10,7 @@ from kafka import KafkaConsumer
 
 from feature_extraction import extract_features
 
+
 # Kafka settings
 KAFKA_TOPIC = "sensor-topic"
 KAFKA_SERVER = "localhost:9092"
@@ -18,36 +18,54 @@ KAFKA_SERVER = "localhost:9092"
 # Window settings
 WINDOW_SIZE = 1024
 SAMPLING_RATE = 20000
-SENSOR_COLUMN = "vibration_1"
+SENSOR_COLUMNS = [f"vibration_{i}" for i in range(1, 9)]
 MAX_MESSAGES = 20480
 IDLE_POLLS_LIMIT = 5
+
+# New Isolation Forest model
+MODEL_PATH = "isolation_forest_model_v2.pkl"
+FEATURES_PATH = "model_features_v2.pkl"
+
+# Initial demo threshold: flag a window when 10% or more of
+# its samples are identified as potential anomalies.
+ANOMALY_FRACTION_THRESHOLD = 0.10
 
 # Output file
 OUTPUT_FILE = "extracted_features.csv"
 
-# Rolling baseline settings
+# Rolling RMS baseline settings
 BASELINE_WINDOW = 20
 MIN_BASELINE_WINDOWS = 5
-baseline_values = deque(maxlen=BASELINE_WINDOW)
 
 
 def main():
-    # Load the trained model and its expected input columns.
+    # Load and validate the new model and feature list.
     try:
-        model = joblib.load("isolation_forest_model.pkl")
-        model_features = joblib.load("model_features.pkl")
-        model_features = list(model_features)
-        print("Isolation Forest model loaded successfully.")
+        model = joblib.load(MODEL_PATH)
+        model_features = list(joblib.load(FEATURES_PATH))
+
+        if model_features != SENSOR_COLUMNS:
+            raise ValueError(
+                "Model features do not match the eight sensor columns. "
+                f"Expected: {SENSOR_COLUMNS}; got: {model_features}"
+            )
+
+        if getattr(model, "n_features_in_", None) != len(SENSOR_COLUMNS):
+            raise ValueError(
+                "The loaded model does not expect eight sensor features."
+            )
+
+        print("New Isolation Forest model loaded successfully.")
+        print(f"Model: {MODEL_PATH}")
+        print(f"Expected input columns: {model_features}")
+
     except Exception as exc:
-        print(f"Could not load model artifacts: {exc}")
-        print(
-            "Make sure isolation_forest_model.pkl and "
-            "model_features.pkl are in the project folder."
-        )
+        print(f"Could not load or validate model artifacts: {exc}")
         return
 
     consumer = None
     readings = deque(maxlen=WINDOW_SIZE)
+    baseline_values = deque(maxlen=BASELINE_WINDOW)
 
     total_messages = 0
     completed_windows = 0
@@ -66,12 +84,16 @@ def main():
             ),
             auto_offset_reset="earliest",
             enable_auto_commit=False,
-            group_id="feature-extraction-consumer-bounded-v1",
+            group_id="feature-extraction-consumer-v2",
         )
 
-        print(f"Connected to Kafka topic: {KAFKA_TOPIC}")
-        print(f"Window size: {WINDOW_SIZE}")
+        print(f"\nConnected to Kafka topic: {KAFKA_TOPIC}")
+        print(f"Window size: {WINDOW_SIZE} samples")
         print(f"Maximum valid readings: {MAX_MESSAGES}")
+        print(
+            "Window anomaly threshold: "
+            f"{ANOMALY_FRACTION_THRESHOLD:.0%}"
+        )
         print("Waiting for sensor readings...\n")
 
         while (
@@ -94,52 +116,76 @@ def main():
 
                     payload = message.value
 
-                    if SENSOR_COLUMN not in payload:
+                    # Require all eight sensor channels.
+                    if not all(
+                        column in payload for column in SENSOR_COLUMNS
+                    ):
                         continue
 
                     try:
-                        reading = float(payload[SENSOR_COLUMN])
+                        sensor_row = {
+                            column: float(payload[column])
+                            for column in SENSOR_COLUMNS
+                        }
                     except (TypeError, ValueError):
                         continue
 
-                    if not np.isfinite(reading):
+                    values = np.asarray(
+                        list(sensor_row.values()), dtype=float
+                    )
+
+                    if not np.isfinite(values).all():
                         continue
 
-                    readings.append(reading)
+                    readings.append(sensor_row)
                     total_messages += 1
 
                     if len(readings) < WINDOW_SIZE:
                         continue
 
-                    # 1. Extract seven vibration features.
+                    # 1. Calculate seven derived features from vibration_1.
+                    signal = [
+                        row["vibration_1"] for row in readings
+                    ]
+
                     features = extract_features(
-                        list(readings),
+                        signal,
                         sampling_rate=SAMPLING_RATE,
                     )
 
-                    # 2. Prepare features in the model's expected order.
-                    feature_row = pd.DataFrame([features])
-                    for column in model_features:
-                        if column not in feature_row.columns:
-                            feature_row[column] = 0.0
-
-                    X_inference = (
-                        feature_row[model_features]
-                        .replace([np.inf, -np.inf], np.nan)
-                        .fillna(0.0)
+                    # 2. Predict on all eight raw sensor channels.
+                    # These columns match the model's training inputs.
+                    X_inference = pd.DataFrame(
+                        list(readings),
+                        columns=model_features,
                     )
 
-                    # 3. Predict anomaly.
-                    prediction = model.predict(X_inference)[0]
-                    is_anomaly = prediction == -1
+                    predictions = model.predict(X_inference)
 
-                    # 4. Calculate the rolling 3-sigma baseline on RMS.
+                    anomalous_samples = int(
+                        np.sum(predictions == -1)
+                    )
+
+                    anomaly_fraction = (
+                        anomalous_samples / len(predictions)
+                    )
+
+                    is_anomaly = (
+                        anomaly_fraction
+                        >= ANOMALY_FRACTION_THRESHOLD
+                    )
+
+                    # 3. Calculate the rolling three-sigma RMS baseline.
                     rms = float(features["rms"])
                     baseline_alert = False
 
                     if len(baseline_values) >= MIN_BASELINE_WINDOWS:
-                        baseline_mean = float(np.mean(baseline_values))
-                        baseline_std = float(np.std(baseline_values))
+                        baseline_mean = float(
+                            np.mean(baseline_values)
+                        )
+                        baseline_std = float(
+                            np.std(baseline_values)
+                        )
 
                         if baseline_std > 0:
                             baseline_alert = (
@@ -149,7 +195,7 @@ def main():
 
                     baseline_values.append(rms)
 
-                    # 5. Assign a status.
+                    # 4. Assign alert status.
                     if is_anomaly:
                         alert_status = "CRITICAL"
                     elif baseline_alert:
@@ -157,21 +203,25 @@ def main():
                     else:
                         alert_status = "NORMAL"
 
-                    # Retain the project's current illustrative health/RUL
-                    # calculation. This is not a trained RUL prediction.
+                    # Illustrative values only, not trained health/RUL models.
                     health_score = 0.0 if is_anomaly else 100.0
+
                     estimated_rul_hours = max(
                         0,
                         round((health_score - 50) * 2.5, 1),
                     )
 
-                    # 6. Save actual output for the dashboard.
+                    # 5. Save derived features and anomaly details.
                     row_data = {
                         **features,
                         "window": completed_windows + 1,
                         "health_score": health_score,
                         "rul": estimated_rul_hours,
                         "anomaly": int(is_anomaly),
+                        "anomalous_samples": anomalous_samples,
+                        "anomaly_fraction": round(
+                            anomaly_fraction, 6
+                        ),
                         "baseline_alert": int(baseline_alert),
                         "alert_status": alert_status,
                     }
@@ -188,8 +238,11 @@ def main():
                     print(
                         f"\nWindow {completed_windows} | "
                         f"Status: {alert_status} | "
+                        f"Anomalous samples: {anomalous_samples}/"
+                        f"{WINDOW_SIZE} "
+                        f"({anomaly_fraction:.1%}) | "
                         f"Health: {health_score:.1f}% | "
-                        f"Estimated RUL: {estimated_rul_hours} hrs"
+                        f"Illustrative RUL: {estimated_rul_hours} hrs"
                     )
 
                     for feature, value in features.items():
@@ -198,11 +251,12 @@ def main():
                     if alert_status != "NORMAL":
                         print(
                             f"ALERT: {alert_status} | "
-                            f"Isolation Forest anomaly: {is_anomaly} | "
-                            f"3-sigma breach: {baseline_alert}"
+                            f"Isolation Forest window anomaly: "
+                            f"{is_anomaly} | "
+                            f"3-sigma RMS breach: {baseline_alert}"
                         )
 
-                    # Start collecting the next window.
+                    # Collect the next non-overlapping window.
                     readings.clear()
 
                 if total_messages >= MAX_MESSAGES:
@@ -228,14 +282,16 @@ def main():
         if consumer is not None:
             consumer.close()
 
-        print(f"\nTotal valid readings: {total_messages}")
+        print(f"\nTotal valid sensor rows: {total_messages}")
         print(f"Completed windows: {completed_windows}")
 
         if readings:
             print(
-                "Readings remaining in incomplete window: "
+                "Rows remaining in incomplete window: "
                 f"{len(readings)}"
             )
+
+        print(f"Output file: {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
