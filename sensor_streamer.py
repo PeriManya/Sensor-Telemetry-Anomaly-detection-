@@ -1,3 +1,4 @@
+
 import csv
 import json
 import time
@@ -12,10 +13,11 @@ csv_file_path = 'dataset.csv'
 
 print("Starting sensor stream from NASA Bearing dataset...")
 
-while True:
-    with open(csv_file_path, mode='r') as file:
+try:
+    with open(csv_file_path, mode='r', newline='') as file:
         reader = csv.DictReader(file)
-        for row in reader:
+
+        for row_number, row in enumerate(reader, start=1):
             # Package multi-channel telemetry payload
             payload = {
                 "timestamp": int(time.time() * 1000),
@@ -29,7 +31,24 @@ while True:
                 "vibration_7": float(row['vibration_7']),
                 "vibration_8": float(row['vibration_8'])
             }
-            
+
             producer.send('sensor-topic', value=payload)
-            print(f"Sent payload: {payload}")
-            time.sleep(1) # Stream interval
+
+            if row_number % 100 == 0:
+                producer.flush()
+                print(f"Sent {row_number} samples")
+
+            time.sleep(0.01)
+
+    producer.flush()
+    print("Finished sending the dataset.")
+
+except KeyboardInterrupt:
+    print("\nStreaming stopped by user.")
+
+except Exception as error:
+    print(f"Streaming error: {error}")
+
+finally:
+    producer.close()
+          
