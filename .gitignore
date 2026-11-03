@@ -14,3 +14,9 @@ __pycache__/
 
 # Generated statistical analysis results
 /statistical_baseline_results.csv
+# Local streaming outputs and model backups
+extracted_features.csv
+extracted_features_backup.csv
+extracted_features_normal_backup.csv
+isolation_forest_model_backup.pkl
+model_features_backup.pkl
