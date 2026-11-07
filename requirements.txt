@@ -8,3 +8,6 @@ stumpy
 kafka-python
 confluent-kafka
 PyWavelets
+scipy
+streamlit
+joblib
