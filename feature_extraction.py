@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.stats import kurtosis
 from scipy.fft import rfft, rfftfreq
 
-
 def extract_features(signal, sampling_rate=20000):
     """
     Extract statistical and frequency-domain features
