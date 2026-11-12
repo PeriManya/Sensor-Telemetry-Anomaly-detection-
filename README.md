@@ -210,37 +210,37 @@ The following graphs illustrate the sensor signal, frequency characteristics, vo
 
 Displays the vibration amplitude over time for the first sensor channel.
 
-![Vibration Signal](images/vibration_signal.png)
+![Vibration Signal](Images/vibration_signal.png)
 
 ### 2. FFT Frequency Spectrum
 
 Shows the frequency-domain representation of the vibration signal and its dominant non-zero frequency component.
 
-![FFT Frequency Spectrum](images/fft_frequency_spectrum.png)
+![FFT Frequency Spectrum](Images/fft_frequency_spectrum.png)
 
 ### 3. Rolling Volatility
 
 Illustrates changes in vibration variability using a rolling standard deviation calculated over 100 samples.
 
-![Rolling Volatility](images/rolling_volatility.png)
+![Rolling Volatility](Images/rolling_volatility.png)
 
 ### 4. Anomaly Detection
 
 Displays RMS vibration values across processed windows and highlights detected anomalous windows.
 
-![Anomaly Detection](images/anomaly_detection.png)
+![Anomaly Detection](Images/anomaly_detection.png)
 
 ### 5. Feature Trends
 
 Visualizes changes in RMS, standard deviation, and peak amplitude across processing windows.
 
-![Feature Trends](images/feature_trends.png)
+![Feature Trends](Images/feature_trends.png)
 
 ### 6. Alert Status Distribution
 
 Shows the distribution of NORMAL, WARNING, and CRITICAL alert statuses.
 
-![Alert Status Distribution](images/alert_status_distribution.png)
+![Alert Status Distribution](Images/alert_status_distribution.png)
 
 ## Project Structure
 
