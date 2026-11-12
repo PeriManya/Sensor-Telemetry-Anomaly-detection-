@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from kafka import KafkaConsumer
-
+from kafka.structs import OffsetAndMetadata, TopicPartition
 from feature_extraction import extract_features
 
 
@@ -71,9 +71,7 @@ def main():
     completed_windows = 0
     idle_polls = 0
 
-    # Start a fresh output file for this run.
-    if os.path.exists(OUTPUT_FILE):
-        os.remove(OUTPUT_FILE)
+
 
     try:
         consumer = KafkaConsumer(
@@ -232,6 +230,10 @@ def main():
                         header=not os.path.exists(OUTPUT_FILE),
                         index=False,
                     )
+                    partition = TopicPartition(message.topic, message.partition)
+                    consumer.commit({
+                        partition: OffsetAndMetadata(message.offset + 1, "")
+                    })
 
                     completed_windows += 1
 
