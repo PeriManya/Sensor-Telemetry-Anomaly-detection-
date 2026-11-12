@@ -112,38 +112,61 @@ flowchart TD
 
 **Key outcome:** Developed a bounded real-time streaming demonstration using Kafka, machine learning, and a monitoring dashboard.
 
-### Week 4 – Reporting, Load Testing and Documentation
 
-**Objective:** Improve monitoring, reporting, testing, and project documentation.
+## Week 4 – Dashboard Improvements, Maintenance Reporting and Load Testing
 
-**Tasks completed:**
-
-**1. Dashboard Improvements**
+### 1. Dashboard Improvements
 - Improved the Streamlit monitoring dashboard.
-- Added sensor feature trends and anomaly monitoring.
-- Included health score and estimated remaining useful life (RUL) indicators.
+- Added sensor feature trends and anomaly monitoring information.
+- Included health score and estimated Remaining Useful Life (RUL) indicators.
+- Health score and RUL are illustrative estimates, not predictions from a trained RUL model.
 
-**2. Maintenance Reporting**
-- Developed `Maintenance_reporter.py`.
-- Implemented anomaly-based maintenance report generation.
-- Included window information, peak amplitude, dominant frequency, and alert status.
+### 2. Maintenance Reporting
+- Implemented `Maintenance_reporter.py`.
+- Generated maintenance reports using anomaly-related information.
+- Included window information, peak amplitude, dominant frequency and alert status.
 - Tested report generation with normal and simulated anomalous data.
 
-**3. Load Testing Preparation**
-- Developed `load_testing/kafka_load_producer.py`.
-- Added configurable message-generation modes:
-  - Normal load
-  - High load
-  - Burst load
-- Implemented message delivery counters and throughput calculation.
-- Prepared CSV-based load-test result logging.
+### 3. Kafka Load and Stress Testing
+- Enhanced `load_testing/kafka_load_producer.py`.
+- Implemented Normal, High and Burst workload modes.
+- Added message acknowledgement tracking and failure counting.
+- Measured throughput and producer-to-broker acknowledgement latency.
+- Stored test results in `load_testing/load_test_results.csv`.
 
-**Note:** Full Kafka load testing remains pending because the local Kafka broker encountered startup and file-access issues.
+#### Kafka Load Testing Results
 
-**4. Documentation**
-- Prepared project documentation.
-- Organized implementation details and execution instructions.
-- Prepared visualizations for the GitHub README.
+| Test Mode | Messages | Target Rate (msg/sec) | Actual Throughput (msg/sec) | Successful | Failed |
+|---|---:|---:|---:|---:|---:|
+| Normal | 500 | 100 | 99.98 | 500 | 0 |
+| High | 5,000 | 500 | 499.81 | 5,000 | 0 |
+| Burst | 10,000 | Maximum speed | 3,127.04 | 10,000 | 0 |
+
+**Total messages acknowledged:** 15,500  
+**Acknowledgement rate:** 100%
+
+#### Acknowledgement Latency
+
+| Test Mode | Average (ms) | P95 (ms) | Maximum (ms) |
+|---|---:|---:|---:|
+| Normal | 15.894 | 30.795 | 166.422 |
+| High | 14.970 | 30.989 | 75.415 |
+| Burst | 24.581 | 63.549 | 142.807 |
+
+#### Execution Commands
+
+```powershell
+python .\load_testing\kafka_load_producer.py --mode normal --messages 500
+python .\load_testing\kafka_load_producer.py --mode high --messages 5000
+python .\load_testing\kafka_load_producer.py --mode burst --messages 10000
+```
+
+**Testing limitations:**
+- Tests were performed using a local Kafka broker.
+- A separate `sensor-load-test` topic was used.
+- Measurements represent producer-to-broker acknowledgement performance.
+- End-to-end consumer processing performance was not benchmarked.
+
 
 ## Machine Learning and Anomaly Detection
 
@@ -186,21 +209,19 @@ The system extracts seven features from each vibration window.
 - Window size: 1,024 samples
 - Sensor channels: 8
 
+
 ## Project Results
 
-The following results were obtained during the bounded streaming demonstration:
+- Processed 20,480 sensor readings across eight vibration channels.
+- Processed 20 windows using a window size of 1,024 samples in the bounded streaming demonstration.
+- Identified a CRITICAL anomaly in Window 18 during one consumer test run, with 126 anomalous samples (12.3%).
+- Identified a dominant non-zero frequency component of approximately 986.33 Hz in the analysed vibration signal.
+- Statistical baseline analysis identified 114 potential anomalous samples out of 20,380 evaluated samples (0.559%).
+- Successfully acknowledged 15,500 Kafka load-test messages across normal, high and burst workloads, with zero reported failures.
+- Developed a Streamlit monitoring dashboard and maintenance reporting functionality.
 
-| Metric | Result |
-|---|---:|
-| Sensor readings in input dataset | 20,480 |
-| Sensor channels | 8 |
-| Processing window size | 1,024 |
-| Feature windows processed | 20 |
-| Anomalous windows in the demonstrated run | 0 |
-| Normal windows | 20 |
-| Dominant frequency from full signal FFT | 986.33 Hz |
+**Note:** Anomaly flags indicate potential unusual behaviour, not confirmed bearing failures. Health score and RUL values are illustrative estimates, not validated predictions.
 
-**Observation:** All 20 processed windows were classified as NORMAL in the demonstrated run. This does not establish that the bearing is failure-free; anomaly detection results depend on the dataset, model, and configured thresholds.
 
 ## Project Visualizations
 
