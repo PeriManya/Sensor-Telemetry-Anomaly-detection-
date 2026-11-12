@@ -1,0 +1,5 @@
+test_time,mode,topic,target_rate_msg_sec,messages_requested,messages_submitted,successful_messages,failed_messages,acknowledgement_rate_percent,elapsed_seconds,throughput_msg_sec,avg_ack_latency_ms,p95_ack_latency_ms,max_ack_latency_ms
+2026-11-12T15:57:06,normal,sensor-load-test,100,500,500,500,0,100.0,5.001,99.98,15.894,30.795,166.422
+2026-11-12T15:59:06,high,sensor-load-test,500,5000,5000,5000,0,100.0,10.004,499.81,14.97,30.989,75.415
+2026-11-12T16:01:16,burst,sensor-load-test,0,10000,10000,10000,0,100.0,3.143,3181.38,22.782,35.76,149.029
+2026-11-12T16:01:49,burst,sensor-load-test,0,10000,10000,10000,0,100.0,3.198,3127.04,24.581,63.549,142.807
