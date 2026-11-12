@@ -434,6 +434,48 @@ This displays the available load-testing options. Run actual load tests only aft
 - Improve dashboard monitoring and reporting capabilities.
 - Explore deployment using Docker and cloud-based infrastructure.
 
+## Kafka Consumer Offset Management and Restart Testing
+
+### Offset Management
+
+The real-time Kafka consumer uses manual offset commits to track successfully processed sensor data.
+
+- Kafka topic: `sensor-topic`
+- Consumer group: `feature-extraction-consumer-v2`
+- Window size: 1,024 sensor readings
+- Maximum readings processed per run: 20,480
+- Offset commits are performed after a complete feature window has been written to the output CSV.
+- Automatic offset commits are disabled.
+
+### Restart and Offset Verification
+
+The consumer was tested across two consecutive runs using a local Kafka broker.
+
+| Metric | First run | Second run |
+|---|---:|---:|
+| Messages processed | 20,480 | 20,480 |
+| Feature windows generated | 20 | 20 |
+| Committed offset | 20,480 | 40,960 |
+| Remaining Kafka lag | 20,480 | 0 |
+
+The consumer resumed from its previously committed offset during the second run instead of starting from the beginning of the topic.
+
+### Test Results
+
+- Total Kafka messages processed across both runs: 40,960
+- Total feature rows saved in `extracted_features.csv`: 40
+- Final committed offset: 40,960
+- Final Kafka lag: 0
+- The consumer successfully detected a CRITICAL anomaly in Window 18 during both runs.
+
+**Note:** The two batches contained repeated copies of the same dataset. Therefore, the 40 feature rows represent two processing runs, not 40 unique windows.
+
+### Processing Guarantee and Limitations
+
+The consumer uses at-least-once processing through manual Kafka offset commits. The feature row is written to CSV before its corresponding Kafka offset is committed. If the application stops between these operations, a previously written row may be generated again after restarting.
+
+This implementation demonstrates offset tracking and restart resumption in a local, single-broker Kafka environment. It does not provide exactly-once processing or production-level fault tolerance.
+
 ## Conclusion
 
 The Sensor Telemetry Analytics and Anomaly Detection project demonstrates the use of data preprocessing, signal processing, machine learning, and real-time streaming for vibration-based equipment monitoring.
