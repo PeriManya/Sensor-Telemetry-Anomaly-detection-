@@ -136,22 +136,39 @@ flowchart TD
 
 #### Kafka Load Testing Results
 
-| Test Mode | Messages | Target Rate (msg/sec) | Actual Throughput (msg/sec) | Successful | Failed |
-|---|---:|---:|---:|---:|---:|
-| Normal | 500 | 100 | 99.98 | 500 | 0 |
-| High | 5,000 | 500 | 499.81 | 5,000 | 0 |
-| Burst | 10,000 | Maximum speed | 3,127.04 | 10,000 | 0 |
+Seven load tests were conducted using Normal, High and Burst workload modes.
 
-**Total messages acknowledged:** 15,500  
+| Test | Mode | Messages | Throughput (msg/sec) | Successful | Failed |
+|---|---|---:|---:|---:|---:|
+| 1 | Normal | 500 | 99.98 | 500 | 0 |
+| 2 | High | 5,000 | 499.81 | 5,000 | 0 |
+| 3 | Burst | 10,000 | 3,181.38 | 10,000 | 0 |
+| 4 | Burst | 10,000 | 3,127.04 | 10,000 | 0 |
+| 5 | Normal | 500 | 99.93 | 500 | 0 |
+| 6 | High | 5,000 | 499.82 | 5,000 | 0 |
+| 7 | Burst | 10,000 | 2,549.17 | 10,000 | 0 |
+**Total messages acknowledged:** 41,000
+**Total successful messages:** 41,000
+**Total failed messages:** 0
 **Acknowledgement rate:** 100%
 
 #### Acknowledgement Latency
 
-| Test Mode | Average (ms) | P95 (ms) | Maximum (ms) |
+| Test | Average (ms) | P95 (ms) | Maximum (ms) |
 |---|---:|---:|---:|
-| Normal | 15.894 | 30.795 | 166.422 |
-| High | 14.970 | 30.989 | 75.415 |
-| Burst | 24.581 | 63.549 | 142.807 |
+| Normal 1 | 15.894 | 30.795 | 166.422 |
+| High 1 | 14.970 | 30.989 | 75.415 |
+| Burst 1 | 22.782 | 35.760 | 149.029 |
+| Burst 2 | 24.581 | 63.549 | 142.807 |
+| Normal 2 | 14.724 | 30.161 | 125.695 |
+| High 2 | 14.211 | 27.744 | 124.324 |
+| Burst 3 | 27.732 | 46.600 | 147.298 |
+
+**Testing limitations:**
+- Tests were performed using a local, single-broker Kafka setup.
+- A separate `sensor-load-test` topic was used.
+- Measurements represent producer-to-broker acknowledgement performance.
+- Distributed production-scale performance and end-to-end consumer throughput were not benchmarked.
 
 #### Execution Commands
 
@@ -217,7 +234,7 @@ The system extracts seven features from each vibration window.
 - Identified a CRITICAL anomaly in Window 18 during one consumer test run, with 126 anomalous samples (12.3%).
 - Identified a dominant non-zero frequency component of approximately 986.33 Hz in the analysed vibration signal.
 - Statistical baseline analysis identified 114 potential anomalous samples out of 20,380 evaluated samples (0.559%).
-- Successfully acknowledged 15,500 Kafka load-test messages across normal, high and burst workloads, with zero reported failures.
+- Successfully acknowledged 41,000 Kafka load-test messages across seven normal, high and burst workload runs, with zero reported failures.
 - Developed a Streamlit monitoring dashboard and maintenance reporting functionality.
 
 **Note:** Anomaly flags indicate potential unusual behaviour, not confirmed bearing failures. Health score and RUL values are illustrative estimates, not validated predictions.
@@ -417,7 +434,7 @@ This displays the available load-testing options. Run actual load tests only aft
 ## Limitations
 
 - The current real-time consumer is a bounded streaming demonstration rather than an indefinitely running production service.
-- Full Kafka load testing has not yet been completed.
+- Local producer-to-broker load testing is complete; distributed production-scale and end-to-end consumer performance testing remain future enhancements.
 - The maintenance report is generated through a manually executed script; automatic notification integration is not implemented.
 - Health score and remaining useful life (RUL) values are illustrative indicators, not validated predictive maintenance estimates.
 - Anomaly flags indicate potential abnormal behaviour and do not confirm mechanical failure.
